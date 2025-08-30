@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Leaf, Factory, Zap, Car, Plane, Utensils, Trash2, Users } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Leaf, Factory, Zap, Car, Plane, Utensils, Trash2, Users, Lightbulb, Heart, Target, TrendingDown } from 'lucide-react';
 
 type UserType = 'individual' | 'company' | null;
 type QuestionType = 'userType' | 'electricity' | 'lpg' | 'transportation' | 'transportationType' | 'flights' | 'flightType' | 'diet' | 'fuel' | 'commute' | 'waste' | 'results';
@@ -215,12 +216,105 @@ const CarbonFootprintChatbot: React.FC = () => {
     }
   };
 
+  const getPersonalizedTips = () => {
+    if (userType === 'individual') {
+      const electricityCO2 = (individualData.electricity * 0.70 * 12) / 1000;
+      const transportationFactor = individualData.transportationType === 'petrol' ? 2.31 : 2.68;
+      const transportationCO2 = (individualData.transportation * 12 * transportationFactor) / 1000;
+      const flightsCO2 = individualData.flightType === 'short' ? (individualData.flights * 300) / 1000 : (individualData.flights * 1000) / 1000;
+      
+      const tips = [];
+      
+      if (electricityCO2 > 2) {
+        tips.push({
+          icon: <Zap className="w-5 h-5 text-yellow-500" />,
+          title: "Reduce Electricity Usage",
+          description: "Switch to LED bulbs, unplug devices when not in use, and consider renewable energy sources.",
+          impact: `Could save ${(electricityCO2 * 0.3).toFixed(1)} tons CO2/year`
+        });
+      }
+      
+      if (transportationCO2 > 1.5) {
+        tips.push({
+          icon: <Car className="w-5 h-5 text-blue-500" />,
+          title: "Optimize Transportation",
+          description: "Use public transport, bike, walk, or consider electric/hybrid vehicles for daily commute.",
+          impact: `Could save ${(transportationCO2 * 0.5).toFixed(1)} tons CO2/year`
+        });
+      }
+      
+      if (flightsCO2 > 2) {
+        tips.push({
+          icon: <Plane className="w-5 h-5 text-purple-500" />,
+          title: "Mindful Flying",
+          description: "Choose direct flights, economy class, and consider carbon offset programs for unavoidable flights.",
+          impact: `Could save ${(flightsCO2 * 0.4).toFixed(1)} tons CO2/year`
+        });
+      }
+      
+      if (individualData.nonVegMeals > 10) {
+        tips.push({
+          icon: <Utensils className="w-5 h-5 text-green-500" />,
+          title: "Sustainable Diet",
+          description: "Try reducing meat consumption by 2-3 meals per week. Plant-based meals have a lower carbon footprint.",
+          impact: "Could save 0.5-1.2 tons CO2/year"
+        });
+      }
+      
+      return tips;
+    } else {
+      const tips = [
+        {
+          icon: <Zap className="w-5 h-5 text-yellow-500" />,
+          title: "Energy Efficiency",
+          description: "Implement LED lighting, smart HVAC systems, and energy management systems.",
+          impact: "Up to 30% energy reduction possible"
+        },
+        {
+          icon: <Users className="w-5 h-5 text-blue-500" />,
+          title: "Employee Engagement",
+          description: "Promote remote work, carpooling, and provide incentives for sustainable commuting.",
+          impact: "20-40% commute emissions reduction"
+        },
+        {
+          icon: <Trash2 className="w-5 h-5 text-red-500" />,
+          title: "Waste Reduction",
+          description: "Implement recycling programs, go paperless, and choose sustainable suppliers.",
+          impact: "50-70% waste reduction achievable"
+        }
+      ];
+      
+      return tips;
+    }
+  };
+
+  const getMotivationalMessage = (totalCO2: number) => {
+    const globalAverage = userType === 'individual' ? 4.8 : 50; // Global averages
+    
+    if (totalCO2 < globalAverage * 0.7) {
+      return {
+        message: "🌟 Excellent! You're already below the global average. You're making a real difference!",
+        color: "text-green-600"
+      };
+    } else if (totalCO2 < globalAverage) {
+      return {
+        message: "👍 Good work! You're close to the global average. Small changes can make a big impact!",
+        color: "text-blue-600"
+      };
+    } else {
+      return {
+        message: "💪 Every step counts! With the right changes, you can significantly reduce your impact.",
+        color: "text-orange-600"
+      };
+    }
+  };
+
   const showResults = () => {
     const totalCO2 = userType === 'individual' 
       ? calculateIndividualFootprint() 
       : calculateCompanyFootprint();
     
-    addMessage('bot', `🌍 Your annual carbon footprint is ${totalCO2.toFixed(2)} tons of CO2! Let me break this down for you...`);
+    addMessage('bot', `🌍 Your annual carbon footprint is ${totalCO2.toFixed(2)} tons of CO2! Let me show you how to make it even better...`);
   };
 
   const getMessageIcon = (type: 'bot' | 'user') => {
@@ -350,32 +444,126 @@ const CarbonFootprintChatbot: React.FC = () => {
       )}
 
       {currentQuestion === 'results' && (
-        <Card className="bg-gradient-nature">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="mb-4">
-                <Badge variant="secondary" className="text-lg px-4 py-2">
+        <div className="space-y-6 animate-fade-in">
+          {/* Results Summary */}
+          <Card className="bg-gradient-nature animate-scale-in">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="mb-4">
+                  <Badge variant="secondary" className="text-xl px-6 py-3 animate-pulse-glow">
+                    {userType === 'individual' 
+                      ? `${calculateIndividualFootprint().toFixed(2)} tons CO2/year`
+                      : `${calculateCompanyFootprint().toFixed(2)} tons CO2/year`
+                    }
+                  </Badge>
+                </div>
+                <div className="mb-4">
+                  {(() => {
+                    const totalCO2 = userType === 'individual' 
+                      ? calculateIndividualFootprint() 
+                      : calculateCompanyFootprint();
+                    const motivational = getMotivationalMessage(totalCO2);
+                    return (
+                      <p className={`text-lg font-medium ${motivational.color}`}>
+                        {motivational.message}
+                      </p>
+                    );
+                  })()}
+                </div>
+                <p className="text-muted-foreground mb-4">
                   {userType === 'individual' 
-                    ? `${calculateIndividualFootprint().toFixed(2)} tons CO2/year`
-                    : `${calculateCompanyFootprint().toFixed(2)} tons CO2/year`
+                    ? "That's your personal annual carbon footprint!"
+                    : "That's your company's estimated annual carbon footprint!"
                   }
-                </Badge>
+                </p>
               </div>
-              <p className="text-muted-foreground mb-4">
-                {userType === 'individual' 
-                  ? "That's your personal annual carbon footprint!"
-                  : "That's your company's estimated annual carbon footprint!"
-                }
-              </p>
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="bg-forest-green hover:bg-leaf-green"
-              >
-                Calculate Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Personalized Tips */}
+          <Card className="animate-slide-in-right">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-forest-green">
+                <Lightbulb className="w-6 h-6" />
+                Your Personalized Action Plan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {getPersonalizedTips().map((tip, index) => (
+                <div 
+                  key={index} 
+                  className="flex gap-3 p-4 rounded-lg bg-mint-green/30 hover:bg-mint-green/50 transition-all duration-300 hover:scale-[1.02]"
+                >
+                  <div className="flex-shrink-0 mt-1">
+                    {tip.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-foreground mb-1">{tip.title}</h4>
+                    <p className="text-sm text-muted-foreground mb-2">{tip.description}</p>
+                    <Badge variant="outline" className="text-xs">
+                      <TrendingDown className="w-3 h-3 mr-1" />
+                      {tip.impact}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Motivation Section */}
+          <Card className="bg-gradient-eco text-white">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <Heart className="w-8 h-8 mx-auto mb-3 animate-pulse" />
+                <h3 className="text-xl font-bold mb-3">Every Action Matters! 🌱</h3>
+                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
+                    <Target className="w-6 h-6 mb-2" />
+                    <span className="font-medium">Small Changes</span>
+                    <span className="text-center opacity-90">Lead to big impacts over time</span>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
+                    <Users className="w-6 h-6 mb-2" />
+                    <span className="font-medium">Join Millions</span>
+                    <span className="text-center opacity-90">Working towards a sustainable future</span>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-white/10 rounded-lg">
+                    <Leaf className="w-6 h-6 mb-2" />
+                    <span className="font-medium">Planet Earth</span>
+                    <span className="text-center opacity-90">Needs heroes like you</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              size="lg"
+              className="flex items-center gap-2"
+            >
+              <Target className="w-5 h-5" />
+              Calculate Again
+            </Button>
+            <Button 
+              onClick={() => {
+                const totalCO2 = userType === 'individual' 
+                  ? calculateIndividualFootprint() 
+                  : calculateCompanyFootprint();
+                const text = `I just calculated my carbon footprint: ${totalCO2.toFixed(2)} tons CO2/year using EcoBot! 🌱 Taking action to reduce my environmental impact. #CarbonFootprint #ClimateAction #Sustainability`;
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+              }}
+              className="bg-forest-green hover:bg-leaf-green flex items-center gap-2"
+              size="lg"
+            >
+              <Heart className="w-5 h-5" />
+              Share My Impact
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
