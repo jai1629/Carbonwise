@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import natureBackground from '@/assets/nature-ecosystem-bg.jpg';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Leaf, Factory, Zap, Car, Plane, Utensils, Trash2, Users, Lightbulb, Heart, Target, TrendingDown } from 'lucide-react';
 
 type UserType = 'individual' | 'company' | null;
-type QuestionType = 'userType' | 'electricity' | 'lpg' | 'transportation' | 'transportationType' | 'flights' | 'flightType' | 'diet' | 'fuel' | 'employees' | 'commuteDistance' | 'commuteTransport' | 'commuteDays' | 'waste' | 'results';
+type QuestionType = 'userType' | 'electricity' | 'lpg' | 'transportation' | 'transportationType' | 'flights' | 'flightType' | 'diet' | 'fuel' | 'commute' | 'waste' | 'results';
 
 interface IndividualData {
   electricity: number;
@@ -24,10 +23,7 @@ interface IndividualData {
 interface CompanyData {
   electricity: number;
   fuel: number;
-  employees: number;
-  commuteDistance: number;
-  commuteTransport: 'car' | 'bus' | 'train' | null;
-  commuteDays: number;
+  commute: number;
   flights: number;
   flightType: 'short' | 'long' | null;
   waste: number;
@@ -63,10 +59,7 @@ const CarbonFootprintChatbot: React.FC = () => {
   const [companyData, setCompanyData] = useState<CompanyData>({
     electricity: 0,
     fuel: 0,
-    employees: 0,
-    commuteDistance: 0,
-    commuteTransport: null,
-    commuteDays: 0,
+    commute: 0,
     flights: 0,
     flightType: null,
     waste: 0
@@ -96,13 +89,7 @@ const CarbonFootprintChatbot: React.FC = () => {
   const calculateCompanyFootprint = (): number => {
     const electricityCO2 = (companyData.electricity * 0.70 * 12) / 1000; // tons per year
     const fuelCO2 = (companyData.fuel * 2.31 * 12) / 1000; // assuming petrol equivalent, tons per year
-    
-    // Calculate commute CO2: Distance per day (km) * Emission factor (kg/km) * Commute days/year * Employees
-    let emissionFactor = 0.18; // default to car
-    if (companyData.commuteTransport === 'bus') emissionFactor = 0.08;
-    if (companyData.commuteTransport === 'train') emissionFactor = 0.04;
-    
-    const commuteCO2 = (companyData.commuteDistance * emissionFactor * companyData.commuteDays * companyData.employees) / 1000; // tons per year
+    const commuteCO2 = companyData.commute / 1000; // already in tons per year
     
     const flightsCO2 = companyData.flightType === 'short' 
       ? (companyData.flights * 300) / 1000 
@@ -185,21 +172,11 @@ const CarbonFootprintChatbot: React.FC = () => {
         break;
       case 'fuel':
         setCompanyData(prev => ({ ...prev, fuel: value }));
-        setCurrentQuestion('employees');
-        addMessage('bot', 'How many employees work in your company?');
+        setCurrentQuestion('commute');
+        addMessage('bot', 'What\'s the estimated annual CO2 emissions from employee commuting (in kg)?');
         break;
-      case 'employees':
-        setCompanyData(prev => ({ ...prev, employees: value }));
-        setCurrentQuestion('commuteDistance');
-        addMessage('bot', 'What\'s the average daily commute distance per employee (in km)?');
-        break;
-      case 'commuteDistance':
-        setCompanyData(prev => ({ ...prev, commuteDistance: value }));
-        setCurrentQuestion('commuteTransport');
-        addMessage('bot', 'What\'s the primary mode of transport for employees? Reply with "car", "bus", or "train"');
-        break;
-      case 'commuteDays':
-        setCompanyData(prev => ({ ...prev, commuteDays: value }));
+      case 'commute':
+        setCompanyData(prev => ({ ...prev, commute: value }));
         setCurrentQuestion('flights');
         addMessage('bot', 'How many business flights does your company take per year?');
         break;
@@ -224,14 +201,6 @@ const CarbonFootprintChatbot: React.FC = () => {
       setIndividualData(prev => ({ ...prev, transportationType: fuelType }));
       setCurrentQuestion('flights');
       addMessage('bot', 'How many flights do you take per year?');
-    } else if (currentQuestion === 'commuteTransport') {
-      let transport: 'car' | 'bus' | 'train' = 'car';
-      if (input.toLowerCase().includes('bus')) transport = 'bus';
-      if (input.toLowerCase().includes('train') || input.toLowerCase().includes('metro')) transport = 'train';
-      
-      setCompanyData(prev => ({ ...prev, commuteTransport: transport }));
-      setCurrentQuestion('commuteDays');
-      addMessage('bot', 'How many days per year do employees typically commute to the office?');
     } else if (currentQuestion === 'flightType') {
       const flight = input.toLowerCase().includes('short') ? 'short' : 'long';
       
@@ -353,16 +322,8 @@ const CarbonFootprintChatbot: React.FC = () => {
   };
 
   return (
-    <div 
-      className="max-w-4xl mx-auto p-6 min-h-screen"
-      style={{
-        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${natureBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      <div className="bg-gradient-eco rounded-2xl p-8 mb-6 text-white backdrop-blur-sm bg-opacity-90">
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="bg-gradient-eco rounded-2xl p-8 mb-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <Leaf className="w-8 h-8" />
           <h1 className="text-3xl font-bold">EcoBot Carbon Calculator</h1>
@@ -372,7 +333,7 @@ const CarbonFootprintChatbot: React.FC = () => {
         </p>
       </div>
 
-      <Card className="mb-6 backdrop-blur-sm bg-background/90">
+      <Card className="mb-6">
         <CardContent className="p-6">
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {messages.map((message, index) => (
@@ -443,38 +404,6 @@ const CarbonFootprintChatbot: React.FC = () => {
         </div>
       )}
 
-      {currentQuestion === 'commuteTransport' && (
-        <div className="flex gap-4 justify-center">
-          <Button
-            onClick={() => handleSpecialInput('car')}
-            variant="outline"
-            size="lg"
-            className="flex items-center gap-2"
-          >
-            <Car className="w-5 h-5" />
-            Car
-          </Button>
-          <Button
-            onClick={() => handleSpecialInput('bus')}
-            variant="outline"
-            size="lg"
-            className="flex items-center gap-2"
-          >
-            <Car className="w-5 h-5" />
-            Bus
-          </Button>
-          <Button
-            onClick={() => handleSpecialInput('train')}
-            variant="outline"
-            size="lg"
-            className="flex items-center gap-2"
-          >
-            <Car className="w-5 h-5" />
-            Train/Metro
-          </Button>
-        </div>
-      )}
-
       {currentQuestion === 'flightType' && (
         <div className="flex gap-4 justify-center">
           <Button
@@ -498,7 +427,7 @@ const CarbonFootprintChatbot: React.FC = () => {
         </div>
       )}
 
-      {['electricity', 'lpg', 'transportation', 'flights', 'diet', 'fuel', 'employees', 'commuteDistance', 'commuteDays', 'waste'].includes(currentQuestion) && (
+      {['electricity', 'lpg', 'transportation', 'flights', 'diet', 'fuel', 'commute', 'waste'].includes(currentQuestion) && (
         <div className="flex gap-2">
           <Input
             value={inputValue}
